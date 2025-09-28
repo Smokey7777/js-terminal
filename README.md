@@ -26,7 +26,13 @@ A self-contained JavaScript terminal that runs user code in a sandboxed Web Work
 
 ## Local run
 
-Open `index.html` directly in a browser. No server required.
+Open `index.html` directly in a browser. No server required in browsers that allow Web Workers on `file://` URLs. If your browser blocks Web Workers for local files (Chrome does, for example), launch a tiny static server and open the `http://` URL instead:
+
+```bash
+npx serve .
+# or
+python -m http.server 8080
+```
 
 ## Notes
 

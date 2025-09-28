@@ -9,13 +9,72 @@
   const status = $("#status");
 
   const HISTORY_KEY = "js-term-history-v1";
-  let history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  let storageEnabled = true;
+  try {
+    const testKey = "__js_term_test__";
+    localStorage.setItem(testKey, "1");
+    localStorage.removeItem(testKey);
+  } catch (err) {
+    storageEnabled = false;
+  }
+
+  function safeGetItem(key) {
+    if (!storageEnabled) return null;
+    try {
+      return localStorage.getItem(key);
+    } catch (err) {
+      storageEnabled = false;
+      return null;
+    }
+  }
+
+  function safeSetItem(key, value) {
+    if (!storageEnabled) return;
+    try {
+      localStorage.setItem(key, value);
+    } catch (err) {
+      storageEnabled = false;
+    }
+  }
+
+  function loadHistory() {
+    const raw = safeGetItem(HISTORY_KEY);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      // reset invalid cache silently
+      safeSetItem(HISTORY_KEY, "[]");
+      return [];
+    }
+  }
+
+  function persistHistory(items) {
+    if (!storageEnabled) return;
+    safeSetItem(HISTORY_KEY, JSON.stringify(items));
+  }
+
+  let history = loadHistory();
   let historyIndex = history.length;
-  let worker = createWorker();
+  let workerErrorShown = false;
   let pending = new Map(); // id -> { startedAt }
+  let worker = createWorker();
 
   function createWorker() {
-    const w = new Worker("assets/js/worker.js");
+    let w;
+    try {
+      w = new Worker("assets/js/worker.js");
+      workerErrorShown = false;
+    } catch (err) {
+      const message = err && err.message ? err.message : "sandbox worker failed to start";
+      if (!workerErrorShown) {
+        renderError(`Sandbox unavailable: ${message}. If you're running this page directly from the file system, try serving it over HTTP(S) so Web Workers are allowed.`);
+        workerErrorShown = true;
+      }
+      setStatus("sandbox unavailable");
+      return null;
+    }
     w.onmessage = (ev) => {
       const msg = ev.data || {};
       switch (msg.type) {
@@ -61,6 +120,12 @@
       renderError("message channel error");
     };
     return w;
+  }
+
+  function ensureWorker() {
+    if (worker) return worker;
+    worker = createWorker();
+    return worker;
   }
 
   function setStatus(text) {
@@ -149,9 +214,14 @@
         out.innerHTML = "";
         return true;
       case ".reset":
-        worker.terminate();
+        if (worker) {
+          worker.terminate();
+        }
+        pending.clear();
         worker = createWorker();
-        setStatus("sandbox reset");
+        if (worker) {
+          setStatus("sandbox reset");
+        }
         return true;
       case ".load": {
         const spec = rest.join(" ");
@@ -159,7 +229,12 @@
           renderError("usage: .load <url|name>");
           return true;
         }
-        worker.postMessage({ type: "load", spec });
+        const w = ensureWorker();
+        if (!w) {
+          setStatus("sandbox unavailable");
+          return true;
+        }
+        w.postMessage({ type: "load", spec });
         setStatus(`loading ${spec} ...`);
         return true;
       }
@@ -175,19 +250,27 @@
   }
 
   function run(code) {
-    if (!code.trim()) return;
-    if (code.trim().startsWith(".")) {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    if (trimmed.startsWith(".")) {
       handleCommand(code);
       return;
     }
+
+    const activeWorker = ensureWorker();
+    if (!activeWorker) {
+      setStatus("sandbox unavailable");
+      return;
+    }
+
     history.push(code);
     if (history.length > 300) history = history.slice(-300);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    persistHistory(history);
     historyIndex = history.length;
 
     const id = Math.random().toString(36).slice(2);
     pending.set(id, { startedAt: performance.now() });
-    worker.postMessage({ type: "eval", id, code });
+    activeWorker.postMessage({ type: "eval", id, code });
     setStatus("running ...");
   }
 
@@ -195,9 +278,14 @@
   runBtn.addEventListener("click", () => run(input.value));
   clearBtn.addEventListener("click", () => (out.innerHTML = ""));
   resetBtn.addEventListener("click", () => {
-    worker.terminate();
+    if (worker) {
+      worker.terminate();
+    }
+    pending.clear();
     worker = createWorker();
-    setStatus("sandbox reset");
+    if (worker) {
+      setStatus("sandbox reset");
+    }
   });
 
   // Keyboard handling
@@ -240,9 +328,10 @@
 
   // Helpers for demo
   (function seedDemo() {
-    if (!localStorage.getItem("js-term-demo-done")) {
-      input.value = `console.log('hello');\n2 ** 10\n\n// Top-level await works:\n(await (await fetch('https://api.github.com')).status)`;
-      localStorage.setItem("js-term-demo-done", "1");
+    const demoCode = `console.log('hello');\n2 ** 10\n\n// Top-level await works:\n(await (await fetch('https://api.github.com')).status)`;
+    if (!safeGetItem("js-term-demo-done")) {
+      input.value = demoCode;
+      safeSetItem("js-term-demo-done", "1");
     }
   })();
 })();
