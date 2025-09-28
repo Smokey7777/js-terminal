@@ -3,13 +3,13 @@
   --bg: #0f1117;
   --panel: #151924;
   --text: #e6edf3;
-  --muted: #9aa4b2;
-  --accent: #4da3ff;
+  --muted: #7fa488;
+  --accent: #38c172;
   --ok: #6dd17c;
   --warn: #ffd866;
   --err: #ff6b6b;
   --border: #2a3241;
-  --code: #d1dce5;
+  --code: #d7f3df;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
@@ -91,6 +91,7 @@ body {
 }
 
 .line .content { color: var(--code); }
+.line .content .muted { color: #ffffff; }
 
 .line.ok .tag { color: var(--ok); }
 .line.warn .tag { color: var(--warn); }
@@ -131,10 +132,10 @@ table.console-table {
 }
 .prompt {
   font-family: var(--mono);
-  color: var(--muted);
+  color: #ffffff;
 }
 .hint {
-  color: var(--muted);
+  color: #ffffff;
   font-size: 12px;
 }
 
@@ -153,7 +154,7 @@ table.console-table {
 
 .status {
   margin-top: 6px;
-  color: var(--muted);
+  color: #ffffff;
   font-size: 12px;
 }
 
