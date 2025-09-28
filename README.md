@@ -10,6 +10,7 @@ A self-contained JavaScript terminal that runs user code in a sandboxed Web Work
 - Top‑level `await` support.
 - Result preview for common JS types.
 - History with ↑/↓. Stored in `localStorage`.
+- Keyboard-friendly: `Shift+Enter` runs code; plain `Enter` inserts a newline.
 - Commands:
   - `.help` — show help
   - `.clear` — clear output
