@@ -328,8 +328,14 @@
 
   // Helpers for demo
   (function seedDemo() {
-    const demoCode = `console.log('hello');\n2 ** 10\n\n// Top-level await works:\n(await (await fetch('https://api.github.com')).status)`;
-    if (!safeGetItem("js-term-demo-done")) {
+    const demoCode = `
+console.log("Hello, world!");   // text
+console.log(2 + 3);             // numbers
+console.log("hi".toUpperCase()); // string
+console.log([1, 2, 3]);         // array
+console.log({a: 1, b: 2});      // object
+	`
+	if (!safeGetItem("js-term-demo-done")) {
       input.value = demoCode;
       safeSetItem("js-term-demo-done", "1");
     }
