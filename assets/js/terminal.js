@@ -179,6 +179,9 @@
   }
 
   function renderResult(formatted, ts, ms) {
+    if (formatted === "undefined") {
+      return;
+    }
     const speed = ms != null ? ` <span class="muted">(${ms} ms)</span>` : "";
     appendLine(
       `<span class="tag">[${esc(tsString(ts))}] RESULT</span><div class="content">${formatted}${speed}</div>`,
